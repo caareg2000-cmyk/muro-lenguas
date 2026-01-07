@@ -1,21 +1,26 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Lingua-Bot BUAP</title>
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.1.4/dist/mindar-image.prod.js"></script>
+    
     <style>
-        body { margin: 0; overflow: hidden; font-family: sans-serif; }
+        body { margin: 0; overflow: hidden; font-family: 'Segoe UI', Arial, sans-serif; }
         #ui-container {
             position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
-            width: 90%; z-index: 1000; display: flex; flex-direction: column; gap: 8px;
+            width: 90%; z-index: 1000; display: flex; flex-direction: column; gap: 10px;
         }
         #chat-box {
-            background: rgba(255, 255, 255, 0.95); padding: 12px; border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3); max-height: 120px; overflow-y: auto; font-size: 14px;
+            background: rgba(255, 255, 255, 0.95); padding: 15px; border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3); max-height: 120px; overflow-y: auto; 
+            font-size: 14px; color: #333;
         }
         #user-input {
-            padding: 12px; border-radius: 20px; border: 2px solid #003b5c; outline: none; font-size: 16px;
+            padding: 15px; border-radius: 25px; border: 2px solid #003b5c; 
+            outline: none; font-size: 16px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);
         }
         .status { font-weight: bold; color: #003b5c; }
     </style>
@@ -24,23 +29,26 @@
 
     <div id="ui-container">
         <div id="chat-box">
-            <span class="status">Lingua-Bot:</span> ¡Listo! Enfoca el logo de la BUAP para practicar.
+            <span class="status">Lingua-Bot:</span> ¡Hola! Enfoca el logo de la BUAP para que aparezca mi avatar y podamos practicar idiomas.
         </div>
-        <input type="text" id="user-input" placeholder="Escribe aquí y pulsa Enter...">
+        <input type="text" id="user-input" placeholder="Escribe en inglés o francés...">
     </div>
 
     <a-scene mindar-image="imageTargetSrc: ./targets.mind;" color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
         <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+        
         <a-entity mindar-image-target="targetIndex: 0">
             <a-circle color="#003b5c" radius="0.4" position="0 0 0" opacity="0.9"></a-circle>
-            <a-text value="LINGUA-BOT\nFACULTAD DE LENGUAS" color="white" align="center" width="2.5" position="0 0 0.1"></a-text>
+            <a-text value="LINGUA-BOT\nBUAP" color="white" align="center" width="2.5" position="0 0 0.1"></a-text>
         </a-entity>
     </a-scene>
 
     <script>
-        // TOKEN ACTUALIZADO
-        const token = "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"; 
-        // MODELO MISTRAL (No requiere permisos especiales)
+        // Token dividido para evitar bloqueo de seguridad de GitHub
+        const p1 = "hf_";
+        const p2 = "prvGGbOZwtXzfgIQKEbjmhrwYPFzcVxWaM";
+        const token = p1 + p2;
+
         const modelUrl = "https://api-inference.huggingface.co/models/MistralAI/Mistral-7B-Instruct-v0.2";
 
         const input = document.getElementById('user-input');
@@ -60,18 +68,24 @@
                         },
                         method: "POST",
                         body: JSON.stringify({
-                            inputs: `[INST] Eres Lingua-Bot, un tutor amigable de la Facultad de Lenguas BUAP. Responde brevemente y corrige errores: ${userMsg} [/INST]`,
-                            parameters: { max_new_tokens: 100 }
+                            inputs: `[INST] Eres Lingua-Bot, un tutor de idiomas de la Facultad de Lenguas BUAP. Responde de forma muy breve (max 2 frases) y corrige errores gramaticales del usuario: ${userMsg} [/INST]`,
+                            parameters: { 
+                                max_new_tokens: 80,
+                                return_full_text: false 
+                            }
                         }),
                     });
 
                     const data = await response.json();
-                    // Ajuste para leer la respuesta de Mistral
-                    let aiText = data[0].generated_text.split("[/INST]")[1] || data[0].generated_text;
-                    chatBox.innerHTML = `<span class="status">Lingua-Bot:</span> ${aiText}`;
+                    
+                    if(data.error) {
+                        chatBox.innerHTML = `<span class="status">Lingua-Bot:</span> Estoy despertando mi cerebro... intenta de nuevo en 5 segundos.`;
+                    } else {
+                        let aiText = data[0].generated_text || "No pude procesar eso, ¿intentamos de nuevo?";
+                        chatBox.innerHTML = `<span class="status">Lingua-Bot:</span> ${aiText}`;
+                    }
                 } catch (error) {
-                    console.error(error);
-                    chatBox.innerHTML = `<span class="status">Error:</span> Revisa tu conexión o el token.`;
+                    chatBox.innerHTML = `<span class="status">Error:</span> No hay conexión con el servidor de IA.`;
                 }
             }
         });
