@@ -8,81 +8,99 @@
         body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #000; font-family: sans-serif; }
         #video-bg { position: fixed; top: 0; left: 0; min-width: 100%; min-height: 100%; z-index: 1; object-fit: cover; transform: scaleX(-1); }
         #ui { position: relative; z-index: 10; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; padding: 20px; box-sizing: border-box; }
-        #chat { background: white; padding: 15px; border-radius: 15px; margin-bottom: 10px; min-height: 50px; max-height: 120px; overflow-y: auto; font-size: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
-        input { width: 100%; padding: 15px; border-radius: 30px; border: 2px solid #003b5c; font-size: 18px; outline: none; box-sizing: border-box; }
+        #chat { background: rgba(255,255,255,0.95); padding: 15px; border-radius: 15px; margin-bottom: 10px; max-height: 140px; overflow-y: auto; font-size: 16px; border-left: 5px solid #003b5c; box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
+        input { width: 100%; padding: 18px; border-radius: 35px; border: 2px solid #003b5c; font-size: 18px; outline: none; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
         .bot { color: #003b5c; font-weight: bold; }
-        #loader { position: fixed; top:0; left:0; width:100%; height:100%; background:#003b5c; z-index:100; display:flex; flex-direction:column; align-items:center; justify-content:center; color:white; }
-        button { padding:15px 30px; border-radius:50px; border:none; font-size:18px; font-weight:bold; background:white; color:#003b5c; cursor:pointer; }
+        #start { position: fixed; top:0; left:0; width:100%; height:100%; background:#003b5c; z-index:100; display:flex; flex-direction:column; align-items:center; justify-content:center; color:white; }
+        button { padding: 18px 40px; border-radius: 50px; border: none; font-size: 18px; font-weight: bold; cursor: pointer; color: #003b5c; background: white; }
     </style>
 </head>
 <body>
 
-    <div id="loader">
+    <div id="start">
         <h2 style="margin-bottom:20px;">Lingua-Bot BUAP</h2>
-        <button onclick="activar()">INICIAR CHAT</button>
+        <button onclick="iniciar()">EMPEZAR PRÁCTICA</button>
     </div>
 
     <video id="video-bg" autoplay playsinline></video>
 
     <div id="ui">
-        <div id="chat">
-            <span class="bot">Bot:</span> ¡Cámara lista! Escribe algo para practicar.
+        <div id="chat" id="chat">
+            <span class="bot">Bot:</span> ¡Cámara lista! Try saying "Hello" or "Comment ça va?".
         </div>
         <input type="text" id="user-input" placeholder="Escribe aquí...">
     </div>
 
     <script>
         const video = document.getElementById('video-bg');
-        const chat = document.getElementById('chat');
+        const chatBox = document.getElementById('chat');
         const input = document.getElementById('user-input');
 
-        async function activar() {
-            document.getElementById('loader').style.display = 'none';
+        async function iniciar() {
+            document.getElementById('start').style.display = 'none';
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
                 video.srcObject = stream;
-            } catch (err) { alert("Permite el acceso a la cámara."); }
+            } catch (err) { alert("Permite la cámara para continuar."); }
         }
 
-        // Token fragmentado (El tuyo, ya verificado)
-        const token = "hf_SXyrsmtvSEJEkUqnn" + "TPQVNiHwSZqvmNINW";
-        // MODELO DE RESPALDO RÁPIDO
-        const api = "https://api-inference.huggingface.co/models/distilgpt2";
+        const t = "hf_SXyrsmtvSEJEkUqnn" + "TPQVNiHwSZqvmNINW";
+        const api = "https://api-inference.huggingface.co/models/google/gemma-1.1-2b-it";
+
+        // Respuestas locales de emergencia
+        const respuestasLocales = {
+            "hello": "Hello! I am Lingua-Bot from BUAP. How are you today?",
+            "hola": "¡Hola! Soy Lingua-Bot. ¿Quieres practicar inglés o francés?",
+            "how are you": "I'm doing great, learning more languages every day!",
+            "salut": "Salut! Comment ça va?",
+            "bye": "Goodbye! See you next time at BUAP."
+        };
 
         input.addEventListener('keypress', async (e) => {
             if (e.key === 'Enter' && input.value.trim() !== "") {
-                const msg = input.value;
+                const msg = input.value.toLowerCase().trim();
                 input.value = "";
-                chat.innerHTML = `<b>Tú:</b> ${msg}<br><span class="bot">Bot:</span> Pensando...`;
+                chatBox.innerHTML = `<b>Tú:</b> ${msg}<br><span class="bot">Bot:</span> Pensando...`;
 
+                // 1. Revisar si tenemos respuesta local
+                if (respuestasLocales[msg]) {
+                    setTimeout(() => {
+                        chatBox.innerHTML = `<span class="bot">Bot:</span> ${respuestasLocales[msg]}`;
+                        hablar(respuestasLocales[msg]);
+                    }, 500);
+                    return;
+                }
+
+                // 2. Si no, intentar con el servidor
                 try {
-                    const response = await fetch(api, {
-                        headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+                    const res = await fetch(api, {
+                        headers: { "Authorization": `Bearer ${t}`, "Content-Type": "application/json" },
                         method: "POST",
                         body: JSON.stringify({ inputs: msg }),
                     });
-
-                    const data = await response.json();
+                    const data = await res.json();
                     
-                    // GPT-2 a veces devuelve el texto directo o en un array
-                    let reply = "";
-                    if (Array.isArray(data)) {
-                        reply = data[0].generated_text;
-                    } else if (data.generated_text) {
-                        reply = data.generated_text;
-                    } else {
-                        reply = "El servidor está ocupado, intenta en 3 segundos.";
-                    }
+                    if (data.error) throw new Error();
 
-                    // Limpiar respuesta (quitar el texto del usuario si el bot lo repite)
-                    reply = reply.replace(msg, "").trim();
-                    chat.innerHTML = `<span class="bot">Bot:</span> ${reply || "Interesante, cuéntame más."}`;
+                    const reply = data[0]?.generated_text || data.generated_text;
+                    const cleanReply = reply.replace(msg, "").trim();
+                    chatBox.innerHTML = `<span class="bot">Bot:</span> ${cleanReply}`;
+                    hablar(cleanReply);
 
                 } catch (err) {
-                    chat.innerHTML = "<b>Error:</b> Reintenta enviar el mensaje.";
+                    // 3. Fallback final si el servidor falla
+                    const fallback = "I'm having a bit of trouble connecting to the cloud, but let's keep practicing!";
+                    chatBox.innerHTML = `<span class="bot">Bot:</span> ${fallback}`;
+                    hablar(fallback);
                 }
             }
         });
+
+        function hablar(texto) {
+            const voz = new SpeechSynthesisUtterance(texto);
+            voz.lang = texto.includes("Salut") ? 'fr-FR' : 'en-US';
+            window.speechSynthesis.speak(voz);
+        }
     </script>
 </body>
 </html>
