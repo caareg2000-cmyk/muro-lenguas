@@ -2,76 +2,75 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Lingua-Bot BUAP</title>
     <style>
         body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #000; font-family: sans-serif; }
-        #video-preview { position: fixed; top: 0; left: 0; min-width: 100%; min-height: 100%; z-index: 1; object-fit: cover; }
-        #interface { position: relative; z-index: 10; height: 100%; display: flex; flex-direction: column; justify-content: space-between; padding: 20px; box-sizing: border-box; background: rgba(0,0,0,0.2); }
-        #chat-box { background: rgba(255, 255, 255, 0.9); padding: 15px; border-radius: 15px; max-height: 30%; overflow-y: auto; font-size: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
-        #input-area { width: 100%; }
-        input { width: 100%; padding: 15px; border-radius: 30px; border: none; font-size: 18px; outline: none; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
-        .bot-name { color: #003b5c; font-weight: bold; }
+        #video-bg { position: fixed; top: 0; left: 0; min-width: 100%; min-height: 100%; z-index: 1; object-fit: cover; }
+        #ui { position: relative; z-index: 10; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; padding: 20px; box-sizing: border-box; background: rgba(0,0,0,0.3); }
+        #chat { background: white; padding: 15px; border-radius: 15px; margin-bottom: 10px; max-height: 150px; overflow-y: auto; font-size: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        input { width: 100%; padding: 15px; border-radius: 30px; border: none; font-size: 18px; outline: none; box-sizing: border-box; }
+        .bot { color: #003b5c; font-weight: bold; }
+        #start-screen { position: fixed; top:0; left:0; width:100%; height:100%; background:#003b5c; z-index:100; display:flex; flex-direction:column; align-items:center; justify-content:center; color:white; }
+        button { padding:15px 30px; border-radius:50px; border:none; font-size:20px; font-weight:bold; cursor:pointer; color:#003b5c; }
     </style>
 </head>
 <body>
 
-    <video id="video-preview" autoplay playsinline></video>
+    <div id="start-screen">
+        <h1>Lingua-Bot BUAP</h1>
+        <p>Facultad de Lenguas</p>
+        <button onclick="iniciar()">ENTRAR A PRACTICAR</button>
+    </div>
 
-    <div id="interface">
-        <div id="chat-box" id="chat-box">
-            <span class="bot-name">Lingua-Bot:</span> ¡Hola! Ya puedo verte. Escribe algo en inglés o francés para practicar.
+    <video id="video-bg" autoplay playsinline></video>
+
+    <div id="ui">
+        <div id="chat" id="chat">
+            <span class="bot">Bot:</span> ¡Hola! Ya te veo. Practiquemos inglés o francés. Escribe algo abajo.
         </div>
-        <div id="input-area">
-            <input type="text" id="user-input" placeholder="Escribe aquí...">
-        </div>
+        <input type="text" id="user-input" placeholder="Escribe aquí...">
     </div>
 
     <script>
-        const video = document.getElementById('video-preview');
-        const chatBox = document.getElementById('chat-box');
+        const video = document.getElementById('video-bg');
+        const chat = document.getElementById('chat');
         const input = document.getElementById('user-input');
 
-        // 1. Activar Cámara de forma nativa (Más confiable)
-        async function startCamera() {
+        async function iniciar() {
+            document.getElementById('start-screen').style.display = 'none';
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
                 video.srcObject = stream;
             } catch (err) {
-                chatBox.innerHTML = "<b>Error:</b> Por favor, permite el acceso a la cámara en la barra de direcciones.";
+                alert("Error al abrir cámara: " + err.message);
             }
         }
 
-        // 2. Configuración de IA (Token Protegido)
-        const partA = "hf_";
-        const partB = "prvGGbOZwtXzfgIQK";
-        const partC = "EbjmhrwYPFzcVxWaM";
-        const token = partA + partB + partC;
+        // Tu Token seguro
+        const t = "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";
         const api = "https://api-inference.huggingface.co/models/facebook/blenderbot-400M-distill";
 
         input.addEventListener('keypress', async (e) => {
             if (e.key === 'Enter' && input.value.trim() !== "") {
-                const userMsg = input.value;
+                const text = input.value;
                 input.value = "";
-                chatBox.innerHTML = `<b>Tú:</b> ${userMsg}<br><span>Pensando...</span>`;
+                chat.innerHTML = `<b>Tú:</b> ${text}<br><span>Pensando...</span>`;
 
                 try {
-                    const response = await fetch(api, {
-                        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+                    const res = await fetch(api, {
+                        headers: { Authorization: `Bearer ${t}`, "Content-Type": "application/json" },
                         method: "POST",
-                        body: JSON.stringify({ inputs: userMsg }),
+                        body: JSON.stringify({ inputs: text }),
                     });
-
-                    const data = await response.json();
-                    const reply = data.generated_text || data[0].generated_text || "No pude conectar, reintenta.";
-                    chatBox.innerHTML = `<span class="bot-name">Lingua-Bot:</span> ${reply}`;
+                    const data = await res.json();
+                    const reply = data.generated_text || data[0].generated_text || "Lo siento, reintenta.";
+                    chat.innerHTML = `<span class="bot">Bot:</span> ${reply}`;
                 } catch (err) {
-                    chatBox.innerHTML = "<b>Error:</b> Revisa tu conexión a internet.";
+                    chat.innerHTML = "<b>Error:</b> Reintenta enviar el mensaje.";
                 }
             }
         });
-
-        startCamera();
     </script>
 </body>
 </html>
