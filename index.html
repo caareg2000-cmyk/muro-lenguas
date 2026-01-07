@@ -4,43 +4,54 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.1.4/dist/mindar-image.prod.js"></script>
-    <style>
-        #indicador { position: fixed; top: 10px; width: 100%; text-align: center; z-index: 100; color: white; background: rgba(0,0,0,0.5); }
-        #boton-inicio { position: fixed; bottom: 50%; left: 50%; transform: translate(-50%, 50%); z-index: 200; padding: 20px; font-size: 20px; background: #003b5c; color: white; border: none; border-radius: 10px; cursor: pointer;}
-    </style>
 </head>
-<body>
-    <div id="indicador">Estado: Esperando interacción...</div>
-    <button id="boton-inicio">ACTIVAR CÁMARA BUAP</button>
+<body style="margin: 0; background: #003b5c;">
 
-    <a-scene mindar-image="imageTargetSrc: ./targets.mind; autoStart: false;" color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
+    <div id="debug" style="position:fixed; top:0; z-index:999; color:white; background:rgba(0,0,0,0.8); width:100%; padding:10px;">
+        Cargando librerías...
+    </div>
+
+    <button id="start" style="position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); z-index:1000; padding:20px; font-size:20px;">
+        PRESIONA PARA INICIAR CÁMARA
+    </button>
+
+    <a-scene mindar-image="imageTargetSrc: ./targets.mind; autoStart: false;" embedded color-space="sRGB" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
         <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
         <a-entity mindar-image-target="targetIndex: 0">
-            <a-plane color="blue" opacitiy="0.5" position="0 0 0" height="0.5" width="0.5"></a-plane>
-            <a-text value="¡LO LOGRASTE!\nLA RA FUNCIONA" color="white" align="center" position="0 0 0.1"></a-text>
+            <a-box position="0 0 0" material="opacity: 0.5; color: red;"></a-box>
+            <a-text value="LOGO DETECTADO" align="center" color="white" position="0 0 0.5"></a-text>
         </a-entity>
     </a-scene>
 
     <script>
-        const btn = document.getElementById('boton-inicio');
-        const ind = document.getElementById('indicador');
-        const sceneEl = document.querySelector('a-scene');
+        const debug = document.getElementById('debug');
+        const startBtn = document.getElementById('start');
+        
+        window.addEventListener('load', () => {
+            debug.innerText = "Librerías listas. Esperando clic.";
+        });
 
-        btn.addEventListener('click', () => {
-            ind.innerText = "Estado: Iniciando cámara...";
-            btn.style.display = 'none';
+        startBtn.addEventListener('click', () => {
+            debug.innerText = "Iniciando sistema...";
+            startBtn.style.display = 'none';
             
-            // Intento de arranque manual
-            sceneEl.systems['mindar-image-system'].start();
-            
-            sceneEl.addEventListener("arReady", () => {
-                ind.innerText = "Estado: Cámara lista. Enfoca el Logo.";
-            });
+            try {
+                const sceneEl = document.querySelector('a-scene');
+                const arSystem = sceneEl.systems['mindar-image-system'];
+                
+                arSystem.start(); 
 
-            sceneEl.addEventListener("arError", (event) => {
-                ind.innerText = "Estado: Error de RA. ¿Subiste el archivo targets.mind?";
-                console.error(event);
-            });
+                sceneEl.addEventListener('arReady', () => {
+                    debug.innerText = "¡CÁMARA OK! Enfoca el logo.";
+                });
+
+                sceneEl.addEventListener('arError', (err) => {
+                    debug.innerText = "ERROR RA: No se encontró el archivo targets.mind";
+                    alert("Error: Asegúrate de que el archivo se llame targets.mind y esté en la misma carpeta.");
+                });
+            } catch (e) {
+                debug.innerText = "Error crítico: " + e.message;
+            }
         });
     </script>
 </body>
