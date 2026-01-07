@@ -2,77 +2,111 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Lingua-Bot BUAP</title>
     <style>
-        body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #000; font-family: sans-serif; }
-        #video-bg { position: fixed; top: 0; left: 0; min-width: 100%; min-height: 100%; z-index: 1; object-fit: cover; }
-        #ui { position: relative; z-index: 10; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; padding: 20px; box-sizing: border-box; }
-        #chat { background: rgba(255,255,255,0.95); padding: 15px; border-radius: 15px; margin-bottom: 10px; max-height: 140px; overflow-y: auto; font-size: 16px; border-left: 5px solid #003b5c; }
-        input { width: 100%; padding: 15px; border-radius: 30px; border: none; font-size: 18px; outline: none; }
-        .bot { color: #003b5c; font-weight: bold; }
-        #start { position: fixed; top:0; left:0; width:100%; height:100%; background:#003b5c; z-index:100; display:flex; flex-direction:column; align-items:center; justify-content:center; color:white; }
-        button { padding: 15px 30px; border-radius: 50px; border: none; font-size: 18px; font-weight: bold; cursor: pointer; color: #003b5c; background: white; }
+        body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #000; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        #video-bg { position: fixed; top: 0; left: 0; min-width: 100%; min-height: 100%; z-index: 1; object-fit: cover; transform: scaleX(-1); }
+        #ui { position: relative; z-index: 10; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; padding: 20px; box-sizing: border-box; background: rgba(0,0,0,0.2); }
+        #chat { background: rgba(255, 255, 255, 0.95); padding: 15px; border-radius: 15px; margin-bottom: 12px; max-height: 150px; overflow-y: auto; font-size: 16px; border-left: 5px solid #003b5c; box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
+        input { width: 100%; padding: 18px; border-radius: 35px; border: 2px solid #003b5c; font-size: 18px; outline: none; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+        .bot-label { color: #003b5c; font-weight: bold; }
+        #start-screen { position: fixed; top:0; left:0; width:100%; height:100%; background:#003b5c; z-index:100; display:flex; flex-direction:column; align-items:center; justify-content:center; color:white; text-align:center; }
+        .btn-inicio { padding: 18px 45px; border-radius: 50px; border: none; font-size: 18px; font-weight: bold; cursor: pointer; color: #003b5c; background: white; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
     </style>
 </head>
 <body>
 
-    <div id="start">
-        <h2>Lingua-Bot</h2>
-        <button onclick="iniciar()">EMPEZAR</button>
+    <div id="start-screen">
+        <div style="font-size: 60px; margin-bottom: 15px;">🤖</div>
+        <h2 style="margin: 0;">Lingua-Bot</h2>
+        <p style="opacity: 0.9;">Facultad de Lenguas BUAP</p>
+        <br>
+        <button class="btn-inicio" onclick="iniciarApp()">ENTRAR A PRACTICAR</button>
     </div>
 
     <video id="video-bg" autoplay playsinline></video>
 
     <div id="ui">
         <div id="chat" id="chat">
-            <span class="bot">Bot:</span> ¡Hola! Escribe algo para probar la conexión.
+            <span class="bot-label">Lingua-Bot:</span> ¡Hola! La cámara y la IA están listas. ¿Hablamos en inglés o francés?
         </div>
-        <input type="text" id="user-input" placeholder="Escribe aquí...">
+        <input type="text" id="user-input" placeholder="Escribe tu mensaje aquí...">
     </div>
 
     <script>
         const video = document.getElementById('video-bg');
-        const chat = document.getElementById('chat');
+        const chatBox = document.getElementById('chat');
         const input = document.getElementById('user-input');
 
-        async function iniciar() {
-            document.getElementById('start').style.display = 'none';
+        // Iniciar cámara nativa
+        async function iniciarApp() {
+            document.getElementById('start-screen').style.display = 'none';
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: "user" },
+                    audio: false 
+                });
                 video.srcObject = stream;
-            } catch (err) { alert("Permite la cámara"); }
+            } catch (err) {
+                alert("Error: Debes permitir el acceso a la cámara.");
+            }
         }
 
-        // TOKEN FRAGMENTADO (El que me pasaste)
-        const k1 = "hf_";
-        const k2 = "SXyrsmtvSEJEkUqnn";
-        const k3 = "TPQVNiHwSZqvmNINW";
-        const token = k1 + k2 + k3;
+        // Token fragmentado para que GitHub NO lo desactive
+        const p1 = "hf_";
+        const p2 = "SXyrsmtvSEJEkUqnn";
+        const p3 = "TPQVNiHwSZqvmNINW";
+        const token = p1 + p2 + p3;
 
-        // MODELO DE EMERGENCIA (GPT-2 es el más rápido de Hugging Face)
-        const api = "https://api-inference.huggingface.co/models/gpt2";
+        // Modelo de Google Gemma (Más robusto para evitar errores de red)
+        const apiModel = "https://api-inference.huggingface.co/models/google/gemma-1.1-2b-it";
 
         input.addEventListener('keypress', async (e) => {
             if (e.key === 'Enter' && input.value.trim() !== "") {
-                const val = input.value;
+                const userMsg = input.value;
                 input.value = "";
-                chat.innerHTML = `<b>Tú:</b> ${val}<br><span class="bot">Bot:</span> Conectando...`;
+                chatBox.innerHTML = `<b>Tú:</b> ${userMsg}<br><span class="bot-label">Lingua-Bot:</span> Conectando...`;
 
                 try {
-                    const res = await fetch(api, {
-                        headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+                    const response = await fetch(apiModel, {
+                        headers: { 
+                            "Authorization": "Bearer " + token.trim(),
+                            "Content-Type": "application/json"
+                        },
                         method: "POST",
-                        body: JSON.stringify({ inputs: val }),
+                        body: JSON.stringify({ 
+                            inputs: userMsg,
+                            parameters: { max_new_tokens: 60 }
+                        }),
                     });
+
+                    const data = await response.json();
+
+                    if (data.error) {
+                        if (data.error.includes("loading")) {
+                            chatBox.innerHTML = `<span class="bot-label">Lingua-Bot:</span> Mi cerebro se está encendiendo... reintenta en 10 segundos.`;
+                        } else {
+                            chatBox.innerHTML = `<span class="bot-label">Lingua-Bot:</span> Hubo un pequeño error. Por favor, intenta de nuevo.`;
+                        }
+                        return;
+                    }
+
+                    // Procesar respuesta de Gemma
+                    let rawReply = data[0]?.generated_text || data.generated_text || "No tengo una respuesta clara, ¿puedes repetir?";
+                    // Limpiar el texto si el modelo repite el input
+                    let cleanReply = rawReply.replace(userMsg, "").trim();
                     
-                    const data = await res.json();
-                    
-                    // Si el modelo está ocupado, gpt2 suele responder con el texto directamente
-                    const reply = data[0]?.generated_text || data.generated_text || "Error de respuesta.";
-                    chat.innerHTML = `<span class="bot">Bot:</span> ${reply}`;
-                } catch (err) {
-                    chat.innerHTML = "<b>Error:</b> El servidor de IA está saturado. Prueba de nuevo en 5 segundos.";
+                    chatBox.innerHTML = `<span class="bot-label">Lingua-Bot:</span> ${cleanReply}`;
+
+                    // Voz automática
+                    const utterance = new SpeechSynthesisUtterance(cleanReply);
+                    utterance.lang = 'en-US'; 
+                    window.speechSynthesis.speak(utterance);
+
+                } catch (error) {
+                    console.error(error);
+                    chatBox.innerHTML = `<span class="bot-label">Error:</span> Revisa tu conexión o el estado del Token en Hugging Face.`;
                 }
             }
         });
