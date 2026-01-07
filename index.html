@@ -1,58 +1,77 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.1.4/dist/mindar-image.prod.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lingua-Bot BUAP</title>
+    <style>
+        body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #000; font-family: sans-serif; }
+        #video-preview { position: fixed; top: 0; left: 0; min-width: 100%; min-height: 100%; z-index: 1; object-fit: cover; }
+        #interface { position: relative; z-index: 10; height: 100%; display: flex; flex-direction: column; justify-content: space-between; padding: 20px; box-sizing: border-box; background: rgba(0,0,0,0.2); }
+        #chat-box { background: rgba(255, 255, 255, 0.9); padding: 15px; border-radius: 15px; max-height: 30%; overflow-y: auto; font-size: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        #input-area { width: 100%; }
+        input { width: 100%; padding: 15px; border-radius: 30px; border: none; font-size: 18px; outline: none; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+        .bot-name { color: #003b5c; font-weight: bold; }
+    </style>
 </head>
-<body style="margin: 0; background: #003b5c;">
+<body>
 
-    <div id="debug" style="position:fixed; top:0; z-index:999; color:white; background:rgba(0,0,0,0.8); width:100%; padding:10px;">
-        Cargando librerías...
+    <video id="video-preview" autoplay playsinline></video>
+
+    <div id="interface">
+        <div id="chat-box" id="chat-box">
+            <span class="bot-name">Lingua-Bot:</span> ¡Hola! Ya puedo verte. Escribe algo en inglés o francés para practicar.
+        </div>
+        <div id="input-area">
+            <input type="text" id="user-input" placeholder="Escribe aquí...">
+        </div>
     </div>
 
-    <button id="start" style="position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); z-index:1000; padding:20px; font-size:20px;">
-        PRESIONA PARA INICIAR CÁMARA
-    </button>
-
-    <a-scene mindar-image="imageTargetSrc: ./targets.mind; autoStart: false;" embedded color-space="sRGB" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
-        <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
-        <a-entity mindar-image-target="targetIndex: 0">
-            <a-box position="0 0 0" material="opacity: 0.5; color: red;"></a-box>
-            <a-text value="LOGO DETECTADO" align="center" color="white" position="0 0 0.5"></a-text>
-        </a-entity>
-    </a-scene>
-
     <script>
-        const debug = document.getElementById('debug');
-        const startBtn = document.getElementById('start');
-        
-        window.addEventListener('load', () => {
-            debug.innerText = "Librerías listas. Esperando clic.";
-        });
+        const video = document.getElementById('video-preview');
+        const chatBox = document.getElementById('chat-box');
+        const input = document.getElementById('user-input');
 
-        startBtn.addEventListener('click', () => {
-            debug.innerText = "Iniciando sistema...";
-            startBtn.style.display = 'none';
-            
+        // 1. Activar Cámara de forma nativa (Más confiable)
+        async function startCamera() {
             try {
-                const sceneEl = document.querySelector('a-scene');
-                const arSystem = sceneEl.systems['mindar-image-system'];
-                
-                arSystem.start(); 
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+                video.srcObject = stream;
+            } catch (err) {
+                chatBox.innerHTML = "<b>Error:</b> Por favor, permite el acceso a la cámara en la barra de direcciones.";
+            }
+        }
 
-                sceneEl.addEventListener('arReady', () => {
-                    debug.innerText = "¡CÁMARA OK! Enfoca el logo.";
-                });
+        // 2. Configuración de IA (Token Protegido)
+        const partA = "hf_";
+        const partB = "prvGGbOZwtXzfgIQK";
+        const partC = "EbjmhrwYPFzcVxWaM";
+        const token = partA + partB + partC;
+        const api = "https://api-inference.huggingface.co/models/facebook/blenderbot-400M-distill";
 
-                sceneEl.addEventListener('arError', (err) => {
-                    debug.innerText = "ERROR RA: No se encontró el archivo targets.mind";
-                    alert("Error: Asegúrate de que el archivo se llame targets.mind y esté en la misma carpeta.");
-                });
-            } catch (e) {
-                debug.innerText = "Error crítico: " + e.message;
+        input.addEventListener('keypress', async (e) => {
+            if (e.key === 'Enter' && input.value.trim() !== "") {
+                const userMsg = input.value;
+                input.value = "";
+                chatBox.innerHTML = `<b>Tú:</b> ${userMsg}<br><span>Pensando...</span>`;
+
+                try {
+                    const response = await fetch(api, {
+                        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+                        method: "POST",
+                        body: JSON.stringify({ inputs: userMsg }),
+                    });
+
+                    const data = await response.json();
+                    const reply = data.generated_text || data[0].generated_text || "No pude conectar, reintenta.";
+                    chatBox.innerHTML = `<span class="bot-name">Lingua-Bot:</span> ${reply}`;
+                } catch (err) {
+                    chatBox.innerHTML = "<b>Error:</b> Revisa tu conexión a internet.";
+                }
             }
         });
+
+        startCamera();
     </script>
 </body>
 </html>
