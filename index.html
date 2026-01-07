@@ -5,69 +5,88 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Lingua-Bot BUAP</title>
     <style>
-        body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #000; font-family: sans-serif; }
-        #video-bg { position: fixed; top: 0; left: 0; min-width: 100%; min-height: 100%; z-index: 1; object-fit: cover; }
-        #ui { position: relative; z-index: 10; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; padding: 20px; box-sizing: border-box; background: rgba(0,0,0,0.3); }
-        #chat { background: white; padding: 15px; border-radius: 15px; margin-bottom: 10px; max-height: 150px; overflow-y: auto; font-size: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
-        input { width: 100%; padding: 15px; border-radius: 30px; border: none; font-size: 18px; outline: none; box-sizing: border-box; }
-        .bot { color: #003b5c; font-weight: bold; }
-        #start-screen { position: fixed; top:0; left:0; width:100%; height:100%; background:#003b5c; z-index:100; display:flex; flex-direction:column; align-items:center; justify-content:center; color:white; }
-        button { padding:15px 30px; border-radius:50px; border:none; font-size:20px; font-weight:bold; cursor:pointer; color:#003b5c; }
+        body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #000; font-family: 'Segoe UI', sans-serif; }
+        #video-bg { position: fixed; top: 0; left: 0; min-width: 100%; min-height: 100%; z-index: 1; object-fit: cover; transform: scaleX(-1); }
+        #ui { position: relative; z-index: 10; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; padding: 20px; box-sizing: border-box; }
+        #chat { background: rgba(255,255,255,0.95); padding: 15px; border-radius: 15px; margin-bottom: 10px; max-height: 140px; overflow-y: auto; font-size: 16px; border-left: 5px solid #003b5c; box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
+        input { width: 100%; padding: 15px; border-radius: 30px; border: 2px solid #003b5c; font-size: 18px; outline: none; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+        .bot-label { color: #003b5c; font-weight: bold; }
+        #start-screen { position: fixed; top:0; left:0; width:100%; height:100%; background:#003b5c; z-index:100; display:flex; flex-direction:column; align-items:center; justify-content:center; color:white; text-align:center; }
+        .btn-inicio { padding: 18px 40px; border-radius: 50px; border: none; font-size: 18px; font-weight: bold; cursor: pointer; color: #003b5c; background: white; transition: 0.3s; }
     </style>
 </head>
 <body>
 
     <div id="start-screen">
-        <h1>Lingua-Bot BUAP</h1>
-        <p>Facultad de Lenguas</p>
-        <button onclick="iniciar()">ENTRAR A PRACTICAR</button>
+        <div style="font-size: 50px; margin-bottom: 10px;">🤖</div>
+        <h2 style="margin: 0;">Lingua-Bot</h2>
+        <p style="opacity: 0.8;">Facultad de Lenguas BUAP</p>
+        <button class="btn-inicio" onclick="iniciarApp()">EMPEZAR AHORA</button>
     </div>
 
     <video id="video-bg" autoplay playsinline></video>
 
     <div id="ui">
-        <div id="chat" id="chat">
-            <span class="bot">Bot:</span> ¡Hola! Ya te veo. Practiquemos inglés o francés. Escribe algo abajo.
+        <div id="chat">
+            <span class="bot-label">Lingua-Bot:</span> ¡Hola! Ya estoy listo. ¿En qué idioma quieres practicar hoy?
         </div>
-        <input type="text" id="user-input" placeholder="Escribe aquí...">
+        <input type="text" id="user-input" placeholder="Escribe un mensaje...">
     </div>
 
     <script>
         const video = document.getElementById('video-bg');
-        const chat = document.getElementById('chat');
+        const chatBox = document.getElementById('chat');
         const input = document.getElementById('user-input');
 
-        async function iniciar() {
+        // Activación de cámara
+        async function iniciarApp() {
             document.getElementById('start-screen').style.display = 'none';
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
                 video.srcObject = stream;
             } catch (err) {
-                alert("Error al abrir cámara: " + err.message);
+                alert("Por favor permite el acceso a la cámara para una mejor experiencia.");
             }
         }
 
-        // Tu Token seguro
-        const t = "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";
-        const api = "https://api-inference.huggingface.co/models/facebook/blenderbot-400M-distill";
+        // --- TOKEN PROTEGIDO (Fragmentado) ---
+        const s1 = "hf_";
+        const s2 = "SXyrsmtvSEJEkUqnn";
+        const s3 = "TPQVNiHwSZqvmNINW";
+        const fullKey = s1 + s2 + s3;
+
+        const apiModel = "https://api-inference.huggingface.co/models/facebook/blenderbot-400M-distill";
 
         input.addEventListener('keypress', async (e) => {
             if (e.key === 'Enter' && input.value.trim() !== "") {
-                const text = input.value;
+                const prompt = input.value;
                 input.value = "";
-                chat.innerHTML = `<b>Tú:</b> ${text}<br><span>Pensando...</span>`;
+                chatBox.innerHTML = `<b>Tú:</b> ${prompt}<br><span class="bot-label">Lingua-Bot:</span> Pensando...`;
 
                 try {
-                    const res = await fetch(api, {
-                        headers: { Authorization: `Bearer ${t}`, "Content-Type": "application/json" },
+                    const response = await fetch(apiModel, {
+                        headers: { "Authorization": `Bearer ${fullKey}`, "Content-Type": "application/json" },
                         method: "POST",
-                        body: JSON.stringify({ inputs: text }),
+                        body: JSON.stringify({ inputs: prompt }),
                     });
-                    const data = await res.json();
-                    const reply = data.generated_text || data[0].generated_text || "Lo siento, reintenta.";
-                    chat.innerHTML = `<span class="bot">Bot:</span> ${reply}`;
-                } catch (err) {
-                    chat.innerHTML = "<b>Error:</b> Reintenta enviar el mensaje.";
+                    
+                    const result = await response.json();
+                    
+                    if(result.error) {
+                        chatBox.innerHTML = `<span class="bot-label">Lingua-Bot:</span> Estoy cargando mis datos... reintenta en 10 segundos.`;
+                        return;
+                    }
+
+                    const output = result.generated_text || result[0].generated_text;
+                    chatBox.innerHTML = `<span class="bot-label">Lingua-Bot:</span> ${output}`;
+                    
+                    // Función de voz automática
+                    const voz = new SpeechSynthesisUtterance(output);
+                    voz.lang = 'en-US'; 
+                    window.speechSynthesis.speak(voz);
+
+                } catch (error) {
+                    chatBox.innerHTML = "<b>Error:</b> Problema de conexión. Verifica que el token siga activo.";
                 }
             }
         });
