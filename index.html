@@ -5,107 +5,163 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Lingua-Bot BUAP</title>
     <style>
-        body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #000; font-family: sans-serif; }
-        #video-bg { position: fixed; top: 0; left: 0; min-width: 100%; min-height: 100%; z-index: 1; object-fit: cover; transform: scaleX(-1); }
-        #ui { position: relative; z-index: 10; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; padding: 20px; box-sizing: border-box; }
-        #chat { background: rgba(255,255,255,0.95); padding: 15px; border-radius: 15px; margin-bottom: 10px; max-height: 140px; overflow-y: auto; font-size: 16px; border-left: 5px solid #003b5c; box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
-        input { width: 100%; padding: 18px; border-radius: 35px; border: 2px solid #003b5c; font-size: 18px; outline: none; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
-        .bot { color: #003b5c; font-weight: bold; }
-        #start { position: fixed; top:0; left:0; width:100%; height:100%; background:#003b5c; z-index:100; display:flex; flex-direction:column; align-items:center; justify-content:center; color:white; text-align:center; }
-        button { padding: 18px 40px; border-radius: 50px; border: none; font-size: 18px; font-weight: bold; cursor: pointer; color: #003b5c; background: white; }
+        :root {
+            --azul-buap: #003b5c;
+            --oro-buap: #9d824d;
+            --blanco: #ffffff;
+        }
+
+        body, html { 
+            margin: 0; padding: 0; height: 100%; overflow: hidden; 
+            background: linear-gradient(135deg, var(--azul-buap), #001a29);
+            font-family: 'Segoe UI', Roboto, sans-serif;
+        }
+
+        #video-bg { 
+            position: fixed; top: 0; left: 0; min-width: 100%; min-height: 100%; 
+            z-index: 1; object-fit: cover; display: none; transform: scaleX(-1);
+        }
+
+        /* Pantalla de Inicio */
+        #start-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 100; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; color: var(--blanco);
+            text-align: center; padding: 20px; box-sizing: border-box;
+        }
+
+        .logo-placeholder { font-size: 80px; margin-bottom: 10px; }
+        
+        .btn-principal {
+            padding: 15px 35px; border-radius: 50px; border: 2px solid var(--oro-buap);
+            font-size: 18px; font-weight: bold; cursor: pointer;
+            background: var(--blanco); color: var(--azul-buap);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4); transition: 0.3s;
+        }
+
+        /* Interfaz de Chat */
+        #ui-container {
+            position: relative; z-index: 10; height: 100%; 
+            display: none; flex-direction: column; justify-content: flex-end;
+            padding: 20px; box-sizing: border-box;
+        }
+
+        #chat-window {
+            background: rgba(255, 255, 255, 0.92);
+            padding: 15px; border-radius: 15px; margin-bottom: 15px;
+            max-height: 200px; overflow-y: auto;
+            border-left: 6px solid var(--oro-buap);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        }
+
+        .input-group {
+            display: flex; gap: 10px; width: 100%;
+        }
+
+        input {
+            flex-grow: 1; padding: 15px; border-radius: 30px;
+            border: 2px solid var(--azul-buap); font-size: 16px; outline: none;
+        }
+
+        #send-btn {
+            background: var(--azul-buap); color: white;
+            border: none; width: 55px; height: 55px; border-radius: 50%;
+            cursor: pointer; font-size: 20px; display: flex;
+            align-items: center; justify-content: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+
+        .bot-msg { color: var(--azul-buap); font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <div id="start">
-        <h2 style="margin: 0;">Lingua-Bot BUAP</h2>
-        <p>Facultad de Lenguas</p>
-        <button onclick="iniciar()">EMPEZAR PRÁCTICA</button>
+    <div id="start-screen">
+        <div class="logo-placeholder">🏛️</div>
+        <h1 style="margin:0; font-size: 28px;">Lingua-Bot</h1>
+        <p style="color: var(--oro-buap); font-weight: bold; letter-spacing: 1px;">FACULTAD DE LENGUAS BUAP</p>
+        <p style="max-width: 250px; font-size: 14px; opacity: 0.8;">Practica inglés y francés con nuestra IA en tiempo real.</p>
+        <br>
+        <button class="btn-principal" onclick="activarSistema()">ACTIVAR CÁMARA E IA</button>
     </div>
 
     <video id="video-bg" autoplay playsinline></video>
 
-    <div id="ui">
-        <div id="chat">
-            <span class="bot">Bot:</span> ¡Cámara lista! Prueba diciendo "Hello" o "Comment ça va?".
+    <div id="ui-container">
+        <div id="chat-window">
+            <span class="bot-msg">Lingua-Bot:</span> ¡Sistema listo! ¿Qué idioma quieres practicar hoy?
         </div>
-        <input type="text" id="user-input" placeholder="Escribe aquí...">
+        
+        <div class="input-group">
+            <input type="text" id="user-input" placeholder="Escribe tu mensaje...">
+            <button id="send-btn" onclick="procesarMensaje()">➔</button>
+        </div>
     </div>
 
     <script>
         const video = document.getElementById('video-bg');
-        const chatBox = document.getElementById('chat');
+        const ui = document.getElementById('ui-container');
+        const startScreen = document.getElementById('start-screen');
+        const chatWindow = document.getElementById('chat-window');
         const input = document.getElementById('user-input');
 
-        async function iniciar() {
-            document.getElementById('start').style.display = 'none';
+        // Función para encender cámara y mostrar interfaz
+        async function activarSistema() {
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
                 video.srcObject = stream;
-            } catch (err) { alert("Por favor, permite el acceso a la cámara."); }
+                video.style.display = 'block';
+                ui.style.display = 'flex';
+                startScreen.style.display = 'none';
+            } catch (err) {
+                alert("Para que el proyecto funcione, debes permitir el uso de la cámara.");
+            }
         }
 
+        // Configuración de IA (Tu Token Protegido)
         const t = "hf_SXyrsmtvSEJEkUqnn" + "TPQVNiHwSZqvmNINW";
         const api = "https://api-inference.huggingface.co/models/google/gemma-1.1-2b-it";
 
-        // BASE DE DATOS LOCAL (Funciona sin internet)
-        const respuestasLocales = {
-            "hello": "Hello! I am Lingua-Bot from BUAP. How can I help you practice today?",
-            "hi": "Hi there! Ready to improve your English or French?",
-            "how are you": "I'm doing great, feeling smarter every time we talk!",
-            "what is your name": "My name is Lingua-Bot, your BUAP language assistant.",
-            "salut": "Salut! Comment ça va today?",
-            "bonjour": "Bonjour! Est-ce que tu veux pratiquer le français?",
-            "gracias": "You're welcome! Keep practicing.",
-            "thanks": "No problem! I'm here to help."
-        };
+        async function procesarMensaje() {
+            const msg = input.value.trim();
+            if (!msg) return;
 
-        input.addEventListener('keypress', async (e) => {
-            if (e.key === 'Enter' && input.value.trim() !== "") {
-                const msg = input.value.toLowerCase().trim();
-                input.value = "";
-                chatBox.innerHTML = `<b>Tú:</b> ${msg}<br><span class="bot">Bot:</span> Pensando...`;
+            input.value = "";
+            chatWindow.innerHTML += `<div><b>Tú:</b> ${msg}</div>`;
+            chatWindow.innerHTML += `<div id="pensando"><span class="bot-msg">Bot:</span> Pensando...</div>`;
+            chatWindow.scrollTop = chatWindow.scrollHeight;
 
-                // 1. INTENTO LOCAL (Rápido y seguro)
-                if (respuestasLocales[msg]) {
-                    setTimeout(() => {
-                        const reply = respuestasLocales[msg];
-                        chatBox.innerHTML = `<span class="bot">Bot:</span> ${reply}`;
-                        hablar(reply);
-                    }, 400);
-                    return;
-                }
+            try {
+                const response = await fetch(api, {
+                    headers: { "Authorization": `Bearer ${t}`, "Content-Type": "application/json" },
+                    method: "POST",
+                    body: JSON.stringify({ inputs: msg }),
+                });
 
-                // 2. INTENTO CON IA EXTERNA
-                try {
-                    const res = await fetch(api, {
-                        headers: { "Authorization": `Bearer ${t}`, "Content-Type": "application/json" },
-                        method: "POST",
-                        body: JSON.stringify({ inputs: msg }),
-                    });
-                    const data = await res.json();
-                    
-                    if (data.error) throw new Error();
+                const data = await response.json();
+                document.getElementById('pensando').remove();
 
-                    let reply = data[0]?.generated_text || data.generated_text;
-                    reply = reply.replace(msg, "").trim();
-                    chatBox.innerHTML = `<span class="bot">Bot:</span> ${reply}`;
-                    hablar(reply);
+                let reply = data[0]?.generated_text || data.generated_text || "I didn't quite catch that. Could you repeat?";
+                // Limpiar la respuesta para que no repita la pregunta
+                reply = reply.replace(msg, "").trim();
 
-                } catch (err) {
-                    // 3. RESPUESTA DE EMERGENCIA (Para evitar errores de red en pantalla)
-                    const fallback = "That's very interesting! Could you tell me more about that in English?";
-                    chatBox.innerHTML = `<span class="bot">Bot:</span> ${fallback}`;
-                    hablar(fallback);
-                }
+                chatWindow.innerHTML += `<div><span class="bot-msg">Bot:</span> ${reply}</div>`;
+                chatWindow.scrollTop = chatWindow.scrollHeight;
+
+                // Voz opcional
+                const speech = new SpeechSynthesisUtterance(reply);
+                speech.lang = 'en-US';
+                window.speechSynthesis.speak(speech);
+
+            } catch (err) {
+                document.getElementById('pensando').innerHTML = `<span class="bot-msg">Bot:</span> I'm connected but the server is busy. Let's keep practicing!`;
             }
-        });
-
-        function hablar(texto) {
-            const voz = new SpeechSynthesisUtterance(texto);
-            voz.lang = (texto.includes("Salut") || texto.includes("français")) ? 'fr-FR' : 'en-US';
-            window.speechSynthesis.speak(voz);
         }
+
+        // Permitir enviar con la tecla Enter
+        input.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') procesarMensaje();
+        });
     </script>
 </body>
 </html>
